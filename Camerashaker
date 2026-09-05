@@ -1,0 +1,60 @@
+local CameraShaker = require(game.ReplicatedStorage:WaitForChild("CameraShaker"))
+local Players = game:GetService("Players")
+local TweenService = game:GetService("TweenService")
+
+local camera = workspace.CurrentCamera
+local player = Players.LocalPlayer
+local playerGui = player:WaitForChild("PlayerGui")
+
+local gui = Instance.new("ScreenGui")
+gui.Name = "CustomDoorEffectGui"
+gui.IgnoreGuiInset = true
+gui.ResetOnSpawn = false
+gui.Parent = playerGui
+
+local frame = Instance.new("Frame")
+frame.Size = UDim2.new(1, 0, 1, 0)
+frame.BackgroundColor3 = Color3.new(0, 0, 0)
+frame.BackgroundTransparency = 1
+frame.Parent = gui
+
+local imageLabel = Instance.new("ImageLabel")
+imageLabel.Size = UDim2.new(1, 0, 1, 0)
+imageLabel.BackgroundTransparency = 1
+imageLabel.Image = "rbxassetid://80488913064503"
+imageLabel.ImageTransparency = 1
+imageLabel.ScaleType = Enum.ScaleType.Fit
+imageLabel.Parent = frame
+
+local spawnShake = CameraShaker.new(Enum.RenderPriority.Camera.Value, function(shakeCf)
+    camera.CFrame = camera.CFrame * shakeCf
+end)
+
+spawnShake:Start()
+
+spawnShake:ShakeOnce(
+    119,
+    3,
+    0.05,
+    5.95,
+    0,
+    0.8
+)
+
+task.wait(1)
+
+frame.BackgroundTransparency = 0
+imageLabel.ImageTransparency = 0
+
+task.wait(3)
+
+local tweenInfo = TweenInfo.new(1, Enum.EasingStyle.Linear, Enum.EasingDirection.Out)
+local tweenFrame = TweenService:Create(frame, tweenInfo, {BackgroundTransparency = 1})
+local tweenImage = TweenService:Create(imageLabel, tweenInfo, {ImageTransparency = 1})
+
+tweenFrame:Play()
+tweenImage:Play()
+
+tweenFrame.Completed:Connect(function()
+    gui:Destroy()
+end)
