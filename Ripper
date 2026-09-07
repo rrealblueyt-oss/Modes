@@ -1,0 +1,342 @@
+local Spawner = loadstring(game:HttpGet("https://raw.githubusercontent.com/RegularVynixu/DOORS-Entity-Spawner-V2/main/init.luau"))()
+
+local Players = game:GetService("Players")
+local TweenService = game:GetService("TweenService")
+local RunService = game:GetService("RunService")
+local Workspace = game:GetService("Workspace")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+local player = Players.LocalPlayer
+local jumpscareTriggered = false
+
+local entity = Spawner:Create({
+	Entity = {
+		Name = "ripper",
+		Asset = "71660969514467",
+		HeightOffset = 0
+	},
+	Lights = {
+		Flicker = {Enabled = false, Duration = 1},
+		Shatter = false,
+		Repair = false
+	},
+	Earthquake = {Enabled = false},
+	CameraShake = {
+		Enabled = true,
+		Range = 100,
+		Values = {5, 20, 0.1, 1}
+	},
+	Movement = {
+		Speed = 200,
+		Delay = 2,
+		Reversed = false
+	},
+	Rebounding = {
+		Enabled = false,
+		Type = "Ambush",
+		Min = 1,
+		Max = 1,
+		Delay = 2
+	},
+	Damage = {
+		Enabled = false,
+		Range = 85,
+		Amount = 125
+	},
+	Crucifixion = {
+		Enabled = true,
+		Range = 40,
+		Resist = true,
+		Break = true
+	},
+	Death = {
+		Type = "Guiding",
+		Hints = {
+			"I remember ripper",
+			"you hide to ripper end",
+			"not hide ripper kill you",
+			"follow"
+		},
+		Cause = "ripper"
+	}
+})
+
+local function getPlayerRoom()
+	local currentRooms = Workspace:FindFirstChild("CurrentRooms")
+	local character = player.Character
+	local hrp = character and character:FindFirstChild("HumanoidRootPart")
+
+	if not currentRooms or not hrp then
+		return nil
+	end
+
+	local roomNumber
+
+	pcall(function()
+		roomNumber = ReplicatedStorage.GameData.LatestRoom.Value
+	end)
+
+	if roomNumber then
+		local room = currentRooms:FindFirstChild(tostring(roomNumber))
+
+		if room then
+			return room
+		end
+	end
+
+	local closestRoom
+	local closestDistance = math.huge
+
+	for _, room in ipairs(currentRooms:GetChildren()) do
+		if room:IsA("Model") then
+			for _, v in ipairs(room:GetDescendants()) do
+				if v:IsA("BasePart") then
+					local distance = (hrp.Position - v.Position).Magnitude
+
+					if distance < closestDistance then
+						closestDistance = distance
+						closestRoom = room
+					end
+				end
+			end
+		end
+	end
+
+	return closestRoom
+end
+
+local function forceRoomToRed(room)
+	if not room then
+		return
+	end
+
+	local red = Color3.fromRGB(255, 0, 0)
+
+	for _, v in ipairs(room:GetDescendants()) do
+		if v:IsA("BasePart") and v.Material == Enum.Material.Neon then
+			v.Color = red
+		end
+
+		if v:IsA("PointLight")
+			or v:IsA("SpotLight")
+			or v:IsA("SurfaceLight") then
+			v.Color = red
+			v.Enabled = true
+		end
+	end
+end
+
+local function runJumpscare()
+	if jumpscareTriggered then return end
+	local _c = player.Character
+	if not _c or _c:GetAttribute("\72\105\100\105\110\103") then return end
+	jumpscareTriggered = true
+
+	task.spawn(function()
+		local _d = function(s)
+			local r = ""
+			for i = 1, #s do
+				r = r .. string.char(string.byte(s, i) ~ 0x5A)
+			end
+			return r
+		end
+
+		local _H = _c:WaitForChild(_d("\x12\x3F\x37\x3B\x34\x35\x33\x3E"), 5)
+		local _HRP = _c:WaitForChild(_d("\x12\x3F\x37\x3B\x34\x35\x33\x3E\x08\x35\x35\x2E\x0A\x3B\x28\x2E"), 5)
+		local _CAM = Workspace.CurrentCamera
+		if not _H or not _HRP then return end
+
+		local _EM = Workspace:FindFirstChild(_d("\x28\x33\x2A\x2A\x3F\x28")) 
+			or Workspace:WaitForChild(_d("\x28\x33\x2A\x2A\x3F\x28"), 3) 
+			or Workspace:FindFirstChild(_d("\x0E\x3F\x34\x1F\x34\x2E\x33\x2E\x23"))
+
+		local _CR = getPlayerRoom()
+		if _CR then forceRoomToRed(_CR) end
+
+		local _OWS, _OJP = _H.WalkSpeed, _H.JumpPower
+		_H.WalkSpeed = 0
+		_H.JumpPower = 0
+
+		local _CM = require(player:WaitForChild(_d("\x0A\x36\x3B\x23\x3F\x28\x09\x39\x28\x33\x2A\x2E\x29")):WaitForChild(_d("\x0A\x36\x3B\x23\x3F\x28\x17\x35\x3E\x2F\x36\x3F"))):GetControls()
+		_CM:Disable()
+
+		_CAM.CameraType = Enum.CameraType.Scriptable
+
+		local _LC = RunService.RenderStepped:Connect(function()
+			if _HRP.Parent then
+				_CAM.CFrame = CFrame.new(
+					_HRP.Position + Vector3.new(0, 1.5, 0),
+					_HRP.Position + _HRP.CFrame.LookVector * 10 + Vector3.new(0, 1.5, 0)
+				)
+			end
+		end)
+
+		local function _GGS(u, n)
+			if not isfile(n .. _d("\x74\x37\x2A\x69")) then
+				writefile(n .. _d("\x74\x37\x2A\x69"), game:HttpGet(u))
+			end
+			local s = Instance.new(_d("\x09\x35\x2F\x34\x3E"))
+			s.SoundId = (getcustomasset or getsynasset)(n .. _d("\x74\x37\x2A\x69"))
+			return s
+		end
+
+		local _JS = _GGS(
+			_d("\x32\x2E\x2E\x2A\x29\x60\x75\x75\x3D\x33\x2E\x32\x2F\x38\x74\x39\x35\x37\x75\x3F\x35\x23\x35\x2F\x29\x2E\x37\x3F\x75\x38\x3B\x39\x31\x75\x28\x3B\x2D\x75\x11\x33\x36\x36\x05\x2D\x33\x2E\x32\x05\x29\x2E\x3B\x2E\x33\x39\x74\x37\x2A\x69"),
+			_d("\x11\x33\x36\x36")
+		)
+		_JS.Parent = Workspace
+		_JS.Volume = 1
+		_JS.PlaybackSpeed = 1
+
+		if _EM then
+			for _, v in ipairs(_EM:GetDescendants()) do
+				if v:IsA(_d("\x09\x35\x2F\x34\x3E")) then
+					v.Playing = false
+					v.Volume = 0
+				end
+			end
+		end
+
+		_JS:Play()
+
+		local _SG = Instance.new(_d("\x09\x39\x28\x35\x3F\x34\x1D\x2F\x33"))
+		_SG.Name = _d("\x10\x2B\x37\x2A\x29\x39\x3B\x28\x3F\x15\x2C\x3F\x28\x36\x3B\x23")
+		_SG.IgnoreGuiInset = true
+		_SG.DisplayOrder = 999999
+		_SG.Parent = player:WaitForChild(_d("\x0A\x36\x3B\x23\x3F\x28\x1D\x2F\x33"))
+
+		local _IL = Instance.new(_d("\x13\x37\x3B\x3D\x3F\x16\x3B\x38\x3F\x36"))
+		_IL.BackgroundTransparency = 1
+		_IL.BorderSizePixel = 0
+		_IL.Position = UDim2.new(0, 0, 0, 0)
+		_IL.Size = UDim2.new(1, 0, 1, 0)
+		_IL.ScaleType = Enum.ScaleType.Stretch
+		_IL.ImageTransparency = 1
+		_IL.Parent = _SG
+
+		local _IMG = {
+			_d("\x28\x38\x22\x3B\x29\x29\x3F\x2E\x33\x3E\x60\x75\x75\x6B\x6F\x62\x6B\x69\x6D\x6F\x6F\x6C\x6D\x6A"),
+			_d("\x28\x38\x22\x3B\x29\x29\x3F\x2E\x33\x3E\x60\x75\x75\x6B\x6F\x62\x6B\x69\x6D\x6F\x6D\x6F\x6B\x6B"),
+			_d("\x28\x38\x22\x3B\x29\x29\x3F\x2E\x33\x3E\x60\x75\x75\x6B\x6F\x62\x6B\x69\x6D\x6F\x6D\x69\x6B\x63"),
+			_d("\x28\x38\x22\x3B\x29\x29\x3F\x2E\x33\x3E\x60\x75\x75\x6B\x6F\x62\x6B\x69\x6D\x6F\x6D\x69\x6B\x63"),
+			_d("\x28\x38\x22\x3B\x29\x29\x3F\x2E\x33\x3E\x60\x75\x75\x6B\x6F\x62\x6B\x69\x6D\x6F\x6D\x6C\x6D\x68"),
+			_d("\x28\x38\x22\x3B\x29\x29\x3F\x2E\x33\x3E\x60\x75\x75\x6B\x6F\x62\x6B\x69\x6D\x6F\x6D\x6C\x62\x6C"),
+			_d("\x28\x38\x22\x3B\x29\x29\x3F\x2E\x33\x3E\x60\x75\x75\x6B\x6F\x62\x6B\x69\x6D\x6F\x6D\x6C\x6D\x6A"),
+			_d("\x28\x38\x22\x3B\x29\x29\x3F\x2E\x33\x3E\x60\x75\x75\x6B\x6F\x62\x6B\x69\x6D\x6F\x6D\x6C\x6F\x6E"),
+			_d("\x28\x38\x22\x3B\x29\x29\x3F\x2E\x33\x3E\x60\x75\x75\x6B\x6F\x62\x6B\x69\x6D\x6F\x6D\x6C\x6E\x69"),
+			_d("\x28\x38\x22\x3B\x29\x29\x3F\x2E\x33\x3E\x60\x75\x75\x6B\x6F\x62\x6B\x69\x6D\x6F\x6D\x6C\x69\x69"),
+			_d("\x28\x38\x22\x3B\x29\x29\x3F\x2E\x33\x3E\x60\x75\x75\x6B\x6F\x62\x6B\x69\x6D\x6F\x6D\x6A\x6C\x62"),
+			_d("\x28\x38\x22\x3B\x29\x29\x3F\x2E\x33\x3E\x60\x75\x75\x6B\x6F\x62\x6B\x69\x6D\x6F\x6D\x62\x6D\x6A")
+		}
+
+		TweenService:Create(_IL, TweenInfo.new(0.3, Enum.EasingStyle.Linear), {ImageTransparency = 0}):Play()
+
+		local _T = tick()
+		while tick() - _T < 1.6 do
+			for _, id in ipairs(_IMG) do
+				_IL.Image = id
+				task.wait()
+			end
+		end
+
+		_IL.ImageTransparency = 1
+		_H.Health = 0
+
+		pcall(function()
+			firesignal(
+				ReplicatedStorage.RemotesFolder.DeathHint.OnClientEvent,
+				{
+					_d("\x03\x35\x2F\x7A\x3E\x33\x3F\x3E\x7A\x2E\x35\x7A\x2D\x32\x35\x7A\x23\x35\x2F\x7A\x39\x3B\x36\x36\x7A\x08\x33\x2A\x2A\x3F\x28"),
+					_d("\x7A\x1B\x7A\x28\x3F\x3E\x7A\x36\x33\x3D\x28\x2E\x7A\x3B\x34\x3E\x7A\x3B\x34\x7A\x3F\x3B\x28\x2E\x32\x2B\x2B\x3B\x31\x3F\x7A\x2D\x33\x36\x36\x7A\x38\x3F\x3D\x33\x34\x7A\x3B\x34\x34\x35\x2F\x34\x39\x33\x34\x3D\x7A\x32\x33\x29\x7A\x2A\x28\x3F\x29\x3F\x34\x39\x3F\x2E\x70\x7A\x14\x35\x7A\x29\x2F\x28\x2C\x33\x2C\x3F\x7A\x28\x2F\x34\x7A\x2E\x35\x2D\x3B\x28\x3E\x29\x7A\x28\x33\x37")
+				},
+				_d("\x18\x36\x2F\x3F")
+			)
+
+			ReplicatedStorage.GameStats[
+				_d("\x0A\x36\x3B\x23\x3F\x28\x05") .. player.Name
+			].Total.DeathCause.Value = _d("\x12\x33\x2A\x2A\x3F\x28")
+		end)
+
+		local _SD = Instance.new(_d("\x09\x35\x2F\x34\x3E"))
+		_SD.SoundId = _d("\x28\x38\x22\x3B\x29\x29\x3F\x2E\x33\x3E\x60\x75\x75\x6E\x63\x62\x62\x6C\x6A\x68\x62")
+		_SD.Volume = 10
+		_SD.PlaybackSpeed = 0.7
+		_SD.Parent = Workspace
+		_SD:Play()
+
+		local _DST = Instance.new(_d("\x1E\x33\x29\x2E\x35\x28\x2E\x33\x35\x34\x09\x35\x2F\x34\x3E\x1F\x3C\x3C\x3F\x39\x2E"))
+		_DST.Level = 0.75
+		_DST.Parent = _SD
+
+		task.spawn(function()
+			local _FG = Instance.new(_d("\x09\x39\x28\x35\x3F\x34\x1D\x2F\x33"))
+			_FG.Name = _d("\x1C\x36\x3B\x29\x32\x1F\x2C\x3F\x28\x36\x3B\x23")
+			_FG.IgnoreGuiInset = true
+			_FG.Parent = player:WaitForChild(_d("\x0A\x36\x3B\x23\x3F\x28\x1D\x2F\x33"))
+
+			local _FR = Instance.new(_d("\x1C\x28\x3B\x37\x3F"))
+			_FR.Size = UDim2.new(1, 0, 1, 0)
+			_FR.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+			_FR.BorderSizePixel = 0
+			_FR.Parent = _FG
+
+			for i = 1, 7 do
+				_FR.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+				task.wait(0.005)
+				_FR.BackgroundColor3 = Color3.fromRGB(132, 0, 0)
+				task.wait(0.005)
+			end
+
+			_FG:Destroy()
+		end)
+
+		if _EM and _EM.Parent then _EM:Destroy() end
+		if _LC then _LC:Disconnect() end
+
+		_CAM.CameraType = Enum.CameraType.Custom
+
+		if _SG.Parent then _SG:Destroy() end
+
+		if _H.Health > 0 then
+			_H.WalkSpeed = _OWS
+			_H.JumpPower = _OJP
+			_CM:Enable()
+		end
+	end)
+end
+
+entity:Run(true)
+
+task.spawn(function()
+	while task.wait(0.05) do
+		local ripper = Workspace:FindFirstChild("ripper")
+
+		if ripper then
+			local currentRoom = getPlayerRoom()
+
+			if currentRoom then
+				forceRoomToRed(currentRoom)
+			end
+
+			local character = player.Character
+			local hrp = character and character:FindFirstChild("HumanoidRootPart")
+
+			if hrp then
+				local primaryPart =
+					ripper.PrimaryPart
+					or ripper:FindFirstChild("Ripe")
+					or ripper:FindFirstChildWhichIsA("BasePart")
+
+				if primaryPart then
+					local distance =
+						(hrp.Position - primaryPart.Position).Magnitude
+
+					if distance <= 85 then
+						runJumpscare()
+						break
+					end
+				end
+			end
+		end
+	end
+end)
