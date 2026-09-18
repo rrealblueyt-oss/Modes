@@ -1,0 +1,56 @@
+local EnabledBool = Instance.new("BoolValue", workspace);
+EnabledBool.Name = "hardcoreInit";
+
+local LightReplaceModel = game:GetObjects("rbxassetid://15029467167")[1] or nil;
+
+local function makeCanCollideFalse(model)
+	if not model then return end
+	for _, part in pairs(model:GetDescendants()) do
+		if part:IsA("BasePart") then
+			part.CanCollide = false
+		end
+	end
+end
+
+local function processLightFixture(v)
+	if (v.Name == "LightStand") then
+		if (game.ReplicatedStorage.GameData.LatestRoom.Value < 53) then
+			local torch = LightReplaceModel:Clone();
+			
+			makeCanCollideFalse(torch);
+			
+			torch.Parent = workspace.CurrentRooms[game:GetService("ReplicatedStorage").GameData.LatestRoom.Value].Assets.Light_Fixtures;
+
+			torch.LightFixture.Changed:Connect(function()
+				torch.LightFixture.Neon.atachm["Ok you cannot tell me this isnt good"].Enabled = torch.LightFixture.PointLight.Enabled;
+				torch.LightFixture.Neon["Bright sh idfk"].ParticleEmitter.Enabled = torch.LightFixture.PointLight.Enabled;
+				torch.LightFixture:WaitForChild("Dust").ParticleEmitter.Enabled = torch.LightFixture.PointLight.Enabled;
+			end);
+
+			torch:PivotTo(v:GetPivot());
+			v:Destroy();
+		else
+			v:Destroy();
+		end
+	end
+end
+
+coroutine.wrap(function()
+	while true do
+		game.ReplicatedStorage.GameData.LatestRoom.Changed:Wait();
+
+		local currentRoom = workspace.CurrentRooms:FindFirstChild(tostring(game:GetService("ReplicatedStorage").GameData.LatestRoom.Value))
+		if currentRoom and currentRoom:FindFirstChild("Assets") and currentRoom.Assets:FindFirstChild("Light_Fixtures") then
+			for i, v in pairs(currentRoom.Assets.Light_Fixtures:GetDescendants()) do
+				processLightFixture(v)
+			end
+		end
+	end
+end)();
+
+local currentRoom = workspace.CurrentRooms:FindFirstChild(tostring(game:GetService("ReplicatedStorage").GameData.LatestRoom.Value))
+if currentRoom and currentRoom:FindFirstChild("Assets") and currentRoom.Assets:FindFirstChild("Light_Fixtures") then
+	for i, v in pairs(currentRoom.Assets.Light_Fixtures:GetDescendants()) do
+		processLightFixture(v)
+	end
+end
