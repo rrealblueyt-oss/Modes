@@ -1,0 +1,258 @@
+-- Services
+local HttpService = game:GetService("HttpService")
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+
+-- Variables
+local LocalPlayer = Players.LocalPlayer
+local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
+
+local AchievementUnlockModule =
+    PlayerGui:FindFirstChild("AchievementUnlock", true)
+
+assert(AchievementUnlockModule, "AchievementUnlock module not found")
+
+local Modules = {
+    AchievementUnlock = require(AchievementUnlockModule),
+}
+
+-- Default Achievement
+local DefaultAchievement = {
+    Identifier = "TestAchievement",
+    Title = "Title",
+    Desc = "Description",
+    Reason = "Reason",
+    Image = "rbxassetid://12309073114",
+
+    TitleColorEnabled = false,
+    TitleColor = "Red",
+    TitleColorAll = false,
+}
+
+-- Default Options
+local DefaultOptions = {
+    CheckOwned = false,
+    Remember = true,
+}
+
+local Module = {}
+
+-- Colors
+local Colors = {
+    Red = Color3.fromRGB(255, 0, 0),
+    Green = Color3.fromRGB(0, 255, 0),
+    Blue = Color3.fromRGB(0, 170, 255),
+    Purple = Color3.fromRGB(170, 0, 255),
+    Pink = Color3.fromRGB(255, 105, 180),
+    LightPink = Color3.fromRGB(255, 182, 193),
+    Yellow = Color3.fromRGB(255, 255, 0),
+    Orange = Color3.fromRGB(255, 140, 0),
+    White = Color3.fromRGB(255, 255, 255),
+    Black = Color3.fromRGB(0, 0, 0),
+    Cyan = Color3.fromRGB(0, 255, 255),
+}
+
+local RainbowLabels = setmetatable({}, {__mode = "k"})
+
+-- Find title labels
+local function FindTitleLabels(title)
+    local labels = {}
+
+    for _, obj in ipairs(PlayerGui:GetDescendants()) do
+        if obj:IsA("TextLabel") and obj.Text == title then
+            table.insert(labels, obj)
+        end
+    end
+
+    return labels
+end
+
+-- Parse color
+local function GetColor(colorName)
+    if typeof(colorName) == "Color3" then
+        return colorName
+    end
+
+    if typeof(colorName) ~= "string" then
+        return nil
+    end
+
+    local color = Colors[colorName]
+
+    if color then
+        return color
+    end
+
+    local hex = colorName:match("^#?(%x%x%x%x%x%x)$")
+
+    if hex then
+        return Color3.fromRGB(
+            tonumber(hex:sub(1, 2), 16),
+            tonumber(hex:sub(3, 4), 16),
+            tonumber(hex:sub(5, 6), 16)
+        )
+    end
+
+    return nil
+end
+
+-- Apply title color
+local function ApplyTitleColor(achievementConfig)
+    local title = achievementConfig.Title
+    local colorEnabled = achievementConfig.TitleColorEnabled == true
+    local rainbowEnabled = achievementConfig.TitleColorAll == true
+
+    if not colorEnabled and not rainbowEnabled then
+        return
+    end
+
+    task.spawn(function()
+        for _ = 1, 50 do
+            local labels = FindTitleLabels(title)
+
+            if #labels > 0 then
+                for _, label in ipairs(labels) do
+                    if rainbowEnabled then
+                        if not RainbowLabels[label] then
+                            RainbowLabels[label] = true
+
+                            task.spawn(function()
+                                local hue = 0
+
+                                while label.Parent and RainbowLabels[label] do
+                                    hue = (hue + 0.008) % 1
+                                    label.TextColor3 =
+                                        Color3.fromHSV(hue, 1, 1)
+
+                                    RunService.RenderStepped:Wait()
+                                end
+                            end)
+                        end
+                    elseif colorEnabled then
+                        local color = GetColor(
+                            achievementConfig.TitleColor
+                        )
+
+                        if color then
+                            label.TextColor3 = color
+                        end
+                    end
+                end
+
+                return
+            end
+
+            task.wait(0.1)
+        end
+    end)
+end
+
+-- Save config
+local function WriteConfig(data)
+    return pcall(function()
+        writefile(
+            "DOORS_Custom_Achievements.json",
+            HttpService:JSONEncode(data)
+        )
+    end)
+end
+
+-- Load config
+local function DecodeConfig()
+    local success, result = pcall(function()
+        return HttpService:JSONDecode(
+            readfile("DOORS_Custom_Achievements.json")
+        )
+    end)
+
+    if success and typeof(result) == "table" then
+        return result
+    end
+
+    return {}
+end
+
+-- Check owned
+Module.CheckOwned = function(self, identifier)
+    return table.find(DecodeConfig(), identifier) ~= nil
+end
+
+-- Revoke achievement
+Module.Revoke = function(self, identifier)
+    local config = DecodeConfig()
+
+    for i = #config, 1, -1 do
+        if config[i] == identifier then
+            table.remove(config, i)
+        end
+    end
+
+    WriteConfig(config)
+end
+
+-- Grant achievement
+Module.Grant = function(self, achievementConfig, options)
+    options = typeof(options) == "table"
+        and options
+        or table.clone(DefaultOptions)
+
+    if typeof(achievementConfig) ~= "table" then
+        return
+    end
+
+    -- Apply defaults without modifying the original table
+    local achievement = table.clone(achievementConfig)
+
+    achievement.Identifier =
+        achievement.Identifier or DefaultAchievement.Identifier
+
+    achievement.Title =
+        achievement.Title or DefaultAchievement.Title
+
+    achievement.Desc =
+        achievement.Desc or DefaultAchievement.Desc
+
+    achievement.Reason =
+        achievement.Reason or DefaultAchievement.Reason
+
+    achievement.Image =
+        achievement.Image or DefaultAchievement.Image
+
+    if achievement.TitleColorEnabled == nil then
+        achievement.TitleColorEnabled =
+            DefaultAchievement.TitleColorEnabled
+    end
+
+    achievement.TitleColor =
+        achievement.TitleColor or DefaultAchievement.TitleColor
+
+    if achievement.TitleColorAll == nil then
+        achievement.TitleColorAll =
+            DefaultAchievement.TitleColorAll
+    end
+
+    local config = DecodeConfig()
+    local identifier = achievement.Identifier
+
+    if options.CheckOwned and table.find(config, identifier) then
+        return
+    end
+
+    -- Display achievement
+    task.defer(
+        Modules.AchievementUnlock,
+        Modules,
+        achievement
+    )
+
+    -- Apply title color
+    ApplyTitleColor(achievement)
+
+    -- Remember achievement
+    if options.Remember and not self:CheckOwned(identifier) then
+        config[#config + 1] = identifier
+        WriteConfig(config)
+    end
+end
+
+return Module
