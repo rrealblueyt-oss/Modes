@@ -1,0 +1,38 @@
+local Spawner = {}
+
+function Spawner:Create(Config)
+    assert(type(Config) == "table", "Config phải là table")
+    assert(Config.Asset ~= nil, "Thiếu Asset")
+
+    local Asset = Config.Asset
+    local Objects
+
+    local Success = pcall(function()
+        if type(Asset) == "number" or (type(Asset) == "string" and Asset:match("^%d+$")) then
+            Objects = game:GetObjects("rbxassetid://" .. tostring(Asset))
+        elseif type(Asset) == "string" then
+            Objects = game:GetObjects(Asset)
+        end
+    end)
+
+    if not Success or not Objects or not Objects[1] then
+        warn("Spawner: Không thể tải Asset")
+        return nil
+    end
+
+    local Model = Objects[1]
+
+    if not Model:IsA("Model") then
+        Model:Destroy()
+        warn("Spawner: Asset không phải Model")
+        return nil
+    end
+
+    Model.Parent = workspace
+
+    return Model
+end
+
+local entity = Spawner:Create({
+    Asset = "1234567890"
+})
